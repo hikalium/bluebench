@@ -46,6 +46,7 @@ async function takeLog(benchResultDiv) {
   benchResultDiv.innerText += `fwid: ${fwid}\n`;
 }
 
+let result = [];
 
 document.addEventListener('DOMContentLoaded', function() {
   const chart = bb.generate({
@@ -104,6 +105,7 @@ document.addEventListener('DOMContentLoaded', function() {
     totalHistogramXList[i] = i * histogramStepWidth;
   }
   const runBench = async function() {
+    // returns: latencies: [Number; iterCount]
     runCount += 1;
     const benchResultList = [];
     const benchResultXList = [];
@@ -176,15 +178,54 @@ document.addEventListener('DOMContentLoaded', function() {
     for (const tabId of tabIdToBeRemovedList) {
       await chrome.tabs.remove(tabId);
     }
+    return benchResultList;
+  };
+  const bench = async () => {
+    const repeatCount = parseInt(repeatCountInput.value);
+    let allBenchResultList = [];
+    for (let i = 0; i < repeatCount; i++) {
+      let result = await runBench();
+      allBenchResultList = allBenchResultList.concat(result);
+    }
+    console.log(allBenchResultList);
+    result.push(allBenchResultList);
   };
   benchButton.addEventListener('click', async () => {
-    const repeatCount = parseInt(repeatCountInput.value);
-    for (let i = 0; i < repeatCount; i++) {
-      await runBench();
-    }
+    await bench();
+    while (true) {
+      await bench();
+      let x1 = result[result.length - 1];
+      let x2 = result[result.length - 2];
+      const t = ttest(x1, x2);
+      console.log(t);
+      if (t < 0.05) {
+        console.log(mean(x1));
+        console.log(mean(x2));
+        console.log((mean(x1) + mean(x2)) / 2);
+        break;
+      }
+    };
   });
   takeLogButton.addEventListener('click', async () => {
     await takeLog(benchResultDiv);
   });
 });
 
+function mean(x) {
+  let sum = 0;
+  for (const v of x) sum += v;
+  return sum / x.length;
+}
+function variance(x) {
+  const m = mean(x);
+  let sum = 0;
+  for (const v of x) sum += (v - m) * (v - m);
+  return sum / x.length;
+}
+function ttest(x1, x2) {
+  let mean1 = mean(x1);
+  let mean2 = mean(x2);
+  let v1 = variance(x1);
+  let v2 = variance(x2);
+  return (Math.abs(mean1 - mean2) / Math.sqrt(v1 / x1.length + v2 / x2.length));
+}
