@@ -4,25 +4,13 @@
   "version": "1.0",
   "manifest_version": 3,
   "permissions": [
-    "clipboardRead",
-    "clipboardWrite",
-    "debugger",
-    "fileBrowserHandler",
-    "nativeMessaging",
-    "pageCapture",
     "power",
-    "processes",
     "scripting",
-    "storage",
     "system.cpu",
     "system.display",
     "system.memory",
     "system.storage",
-    "tabCapture",
-    "tabs",
-    "tts",
-    "ttsEngine",
-    "webRequest"
+    "tabs"
   ],
   "action": {},
   "background": {
