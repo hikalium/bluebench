@@ -192,16 +192,23 @@ document.addEventListener('DOMContentLoaded', function() {
   };
   benchButton.addEventListener('click', async () => {
     await bench();
+    await bench();
     while (true) {
       await bench();
       let x1 = result[result.length - 1];
       let x2 = result[result.length - 2];
-      const t = ttest(x1, x2);
-      console.log(t);
-      if (t < 0.05) {
+      let x3 = result[result.length - 3];
+      const t1 = ttest(x1, x2);
+      const t2 = ttest(x2, x3);
+      const t3 = ttest(x3, x1);
+      console.log(t1);
+      console.log(t2);
+      console.log(t3);
+      if (t1 < 0.05 && t2 < 0.05 && t3 < 0.05) {
         console.log(mean(x1));
         console.log(mean(x2));
-        console.log((mean(x1) + mean(x2)) / 2);
+        console.log(mean(x3));
+        console.log((mean(x1) + mean(x2) + mean(x3)) / 3);
         break;
       }
     };
