@@ -85,6 +85,7 @@ const log = (div, s) => {
 document.addEventListener('DOMContentLoaded', function() {
   const takeLogButton = document.getElementById('takeLogButton');
   const benchButton = document.getElementById('benchButton');
+  const copyResultButton = document.getElementById('copyResultButton');
   const benchResultPre = document.getElementById('benchResultPre');
   const histogramStepWidth = 10;
   const histogramNumSteps = 30;
@@ -97,44 +98,51 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   benchButton.addEventListener('click', async () => {
     const numTabsInput = document.getElementById('numTabsInput');
+    const numTabs = parseInt(numTabsInput.value);
+
     const numCyclesInput = document.getElementById('numCyclesInput');
     const numCycles = parseInt(numCyclesInput.value);
-    const numTabs = parseInt(numTabsInput.value);
+
+    const numConvergedResultsInput = document.getElementById('numConvergedResultsInput');
+    const numConvergedResults = parseInt(numConvergedResultsInput.value);
+
     const result = [];
     let iterCount = 0;
     const runBenchAndProcess = async () => {
+      // Returns: isConverged
       iterCount++;
       const r = await runBench(numCycles, numTabs);
-      log(benchResultPre, `${iterCount},raw,${r}`);
       result.push(r);
+
+      let resultStatus = "not_enough_results_yet";
+      let t1 = "";
+      let t2 = "";
+      let t3 = "";
+      let meanAll = "";
+      if(result.length >= 3) {
+        let x1 = result[result.length - 1].flat();
+        let x2 = result[result.length - 2].flat();
+        let x3 = result[result.length - 3].flat();
+        t1 = ttest(x1, x2);
+        t2 = ttest(x2, x3);
+        t3 = ttest(x3, x1);
+        if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
+          meanAll = mean([mean(x1),mean(x2),mean(x3)]);
+          resultStatus = "converged";
+        } else {
+          resultStatus = "not_converged_yet";
+        }
+      }
+      log(benchResultPre, `${(new Date()).toISOString()},${iterCount},${resultStatus},${meanAll},${t1},${t2},${t3},${r}`);
+      return (resultStatus === "converged");
     };
     await runBenchAndProcess();
     await runBenchAndProcess();
     const pValueLimit = 1;
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < numConvergedResults; i++) {
       while (true) {
-        await runBenchAndProcess();
-        let x1 = result[result.length - 1].flat();
-        let x2 = result[result.length - 2].flat();
-        let x3 = result[result.length - 3].flat();
-        const t1 = ttest(x1, x2);
-        const t2 = ttest(x2, x3);
-        const t3 = ttest(x3, x1);
-        // log(benchResultPre, `${iterCount},ttest(x1,x2),${t1}`);
-        // log(benchResultPre, `${iterCount},ttest(x2,x3),${t2}`);
-        // log(benchResultPre, `${iterCount},ttest(x3,x1),${t3}`);
-        //  log(benchResultPre, `${iterCount},mean(x1),${mean(x1)}`);
-        //  log(benchResultPre, `${iterCount},mean(x2),${mean(x2)}`);
-        //  log(benchResultPre, `${iterCount},mean(x3),${mean(x3)}`);
-        if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
-          log(benchResultPre, `${iterCount},result,converged,${mean([
-                mean(x1), mean(x2), mean(x3)
-              ])},${t1},${t2},${t3}`);
+        if (await runBenchAndProcess()) {
           break;
-        } else {
-          log(benchResultPre, `${iterCount},result,not_converged_yet,${mean([
-                mean(x1), mean(x2), mean(x3)
-              ])},${t1},${t2},${t3}`);
         }
       }
     }
@@ -149,6 +157,24 @@ document.addEventListener('DOMContentLoaded', function() {
   }
   takeLogButton.addEventListener('click', async () => {
     await takeLog(benchResultPre);
+  });
+  copyResultButton.addEventListener('click', async () => {
+    navigator.clipboard.writeText(benchResultPre.innerText).then(
+    () => {
+      const old = copyResultButton.innerText;
+      copyResultButton.innerText = "OK!";
+      setTimeout(() => {
+        copyResultButton.innerText = old;
+      }, 1000);
+    },
+    () => {
+      const old = copyResultButton.innerText;
+      copyResultButton.innerText = "Failed...";
+      setTimeout(() => {
+        copyResultButton.innerText = old;
+      }, 1000);
+    },
+  );
   });
 });
 
