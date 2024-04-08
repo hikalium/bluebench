@@ -79,8 +79,8 @@ const runBench = async function(numCycles, numTabs) {
 
 const log = (div, s) => {
   div.innerText += s;
-  div.innerText += "\n";
-}
+  div.innerText += '\n';
+};
 
 document.addEventListener('DOMContentLoaded', function() {
   const takeLogButton = document.getElementById('takeLogButton');
@@ -111,26 +111,31 @@ document.addEventListener('DOMContentLoaded', function() {
     await runBenchAndProcess();
     await runBenchAndProcess();
     const pValueLimit = 1;
-    while (true) {
-      await runBenchAndProcess();
-      let x1 = result[result.length - 1].flat();
-      let x2 = result[result.length - 2].flat();
-      let x3 = result[result.length - 3].flat();
-      const t1 = ttest(x1, x2);
-      const t2 = ttest(x2, x3);
-      const t3 = ttest(x3, x1);
-      log(benchResultPre, `${iterCount},ttest(x1,x2),${t1}`);
-      log(benchResultPre, `${iterCount},ttest(x2,x3),${t2}`);
-      log(benchResultPre, `${iterCount},ttest(x3,x1),${t3}`);
-      log(benchResultPre, `${iterCount},mean(x1),${mean(x1)}`);
-      log(benchResultPre, `${iterCount},mean(x2),${mean(x2)}`);
-      log(benchResultPre, `${iterCount},mean(x3),${mean(x3)}`);
-      log(benchResultPre, `${iterCount},mean(x1,x2,x3),${mean([mean(x1), mean(x2), mean(x3)])}`);
-      if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
-        log(benchResultPre, `${iterCount},result,converged`);
-        break;
-      } else {
-        log(benchResultPre, `${iterCount},result,not_converged_yet`);
+    for (let i = 0; i < 10; i++) {
+      while (true) {
+        await runBenchAndProcess();
+        let x1 = result[result.length - 1].flat();
+        let x2 = result[result.length - 2].flat();
+        let x3 = result[result.length - 3].flat();
+        const t1 = ttest(x1, x2);
+        const t2 = ttest(x2, x3);
+        const t3 = ttest(x3, x1);
+        // log(benchResultPre, `${iterCount},ttest(x1,x2),${t1}`);
+        // log(benchResultPre, `${iterCount},ttest(x2,x3),${t2}`);
+        // log(benchResultPre, `${iterCount},ttest(x3,x1),${t3}`);
+        //  log(benchResultPre, `${iterCount},mean(x1),${mean(x1)}`);
+        //  log(benchResultPre, `${iterCount},mean(x2),${mean(x2)}`);
+        //  log(benchResultPre, `${iterCount},mean(x3),${mean(x3)}`);
+        if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
+          log(benchResultPre, `${iterCount},result,converged,${mean([
+                mean(x1), mean(x2), mean(x3)
+              ])},${t1},${t2},${t3}`);
+          break;
+        } else {
+          log(benchResultPre, `${iterCount},result,not_converged_yet,${mean([
+                mean(x1), mean(x2), mean(x3)
+              ])},${t1},${t2},${t3}`);
+        }
       }
     }
   });
