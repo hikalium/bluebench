@@ -46,7 +46,46 @@ async function takeLog(benchResultDiv) {
   benchResultDiv.innerText += `fwid: ${fwid}\n`;
 }
 
-let result = [];
+const runCycle = async function(numTabs) {
+  // returns: tab open latencies: [Number; numTabs]
+  const result = [];
+  const tabIdToBeRemovedList = [];
+  for (let i = 0; i < numTabs; i++) {
+    const t0 = performance.now();
+    const tid =
+        (await chrome.tabs.create({url: 'nothing.html', active: false})).id;
+    while (true) {
+      const t = await chrome.tabs.get(tid);
+      if (t.status === 'complete') {
+        tabIdToBeRemovedList.push(tid);
+        break;
+      }
+    }
+    const t1 = performance.now();
+    const diff = t1 - t0;
+    result.push(diff);
+  }
+  for (const tabId of tabIdToBeRemovedList) {
+    do {
+      try {
+        await chrome.tabs.remove(tabId);
+      } catch {
+        console.log('Remove failed. Retrying.')
+        continue;
+      }
+    } while (0)
+  }
+  return result;
+};
+
+const runBench = async function(numCycles, numTabs) {
+  // returns: latencies: [[Number; iterCount]; numCycles]
+  const result = [];
+  for (let i = 0; i < numCycles; i++) {
+    result.push(await runCycle(numTabs));
+  }
+  return result;
+};
 
 document.addEventListener('DOMContentLoaded', function() {
   const chart = bb.generate({
@@ -92,9 +131,6 @@ document.addEventListener('DOMContentLoaded', function() {
   const takeLogButton = document.getElementById('takeLogButton');
   const benchButton = document.getElementById('benchButton');
   const benchResultDiv = document.getElementById('benchResultDiv');
-  const tabsPerIterInput = document.getElementById('tabsPerIterInput');
-  const iterCountInput = document.getElementById('iterCountInput');
-  const repeatCountInput = document.getElementById('repeatCountInput');
   const histogramStepWidth = 10;
   const histogramNumSteps = 30;
   const totalHistogram = [];
@@ -104,114 +140,41 @@ document.addEventListener('DOMContentLoaded', function() {
     totalHistogram[i] = 0;
     totalHistogramXList[i] = i * histogramStepWidth;
   }
-  const runBench = async function() {
-    // returns: latencies: [Number; iterCount]
-    runCount += 1;
-    const benchResultList = [];
-    const benchResultXList = [];
-    const tabsPerIter = parseInt(tabsPerIterInput.value);
-    const iterCount = parseInt(iterCountInput.value);
-    const tabIdToBeRemovedList = [];
-    for (let i = 0; i < iterCount; i++) {
-      const tabIdList = [];
-      const t0 = performance.now();
-      for (let i = 0; i < tabsPerIter; i++) {
-        const t =
-            await chrome.tabs.create({url: 'nothing.html', active: false});
-        tabIdList.push(t.id);
-      }
-      for (const tabId of tabIdList) {
-        while (true) {
-          const t = await chrome.tabs.get(tabId);
-          if (t.status === 'complete') {
-            tabIdToBeRemovedList.push(tabId);
-            break;
-          }
-        }
-      };
-      const t1 = performance.now();
-      const diff = t1 - t0;
-      benchResultList.push(diff);
-      benchResultXList.push((i + 1) * tabsPerIter);
-    }
-    const key = `#${runCount}: Open ${tabsPerIter} tabs once * ${iterCount}`;
-    const xKey = 'x_' + key;
-    {
-      const data = {};
-      data[key] = benchResultList;
-      data[xKey] = benchResultXList;
-      const xs = {};
-      xs[key] = xKey;
-      chart.load({json: data, xs: xs});
-    }
-    {
-      const histogram = [];
-      const histogramXList = [];
-      for (let i = 0; i < histogramNumSteps; i++) {
-        histogram[i] = 0;
-        histogramXList[i] = i * histogramStepWidth;
-      }
-      for (const t of benchResultList) {
-        const i = Math.floor(t / histogramStepWidth);
-        if (i < histogramNumSteps) {
-          histogram[i]++;
-          totalHistogram[i]++;
-        }
-      }
-      {
-        const data = {};
-        data[key] = histogram;
-        data[xKey] = histogramXList;
-        const xs = {};
-        xs[key] = xKey;
-        histChart.load({json: data, xs: xs});
-      }
-      {
-        const data = {};
-        data['total'] = totalHistogram;
-        data['xtotal'] = totalHistogramXList;
-        const xs = {};
-        xs['total'] = 'xtotal';
-        totalHistChart.load({json: data, xs: xs});
-      }
-    }
-    for (const tabId of tabIdToBeRemovedList) {
-      await chrome.tabs.remove(tabId);
-    }
-    return benchResultList;
-  };
-  const bench = async () => {
-    const repeatCount = parseInt(repeatCountInput.value);
-    let allBenchResultList = [];
-    for (let i = 0; i < repeatCount; i++) {
-      let result = await runBench();
-      allBenchResultList = allBenchResultList.concat(result);
-    }
-    console.log(allBenchResultList);
-    result.push(allBenchResultList);
-  };
   benchButton.addEventListener('click', async () => {
-    await bench();
-    await bench();
+    const numTabsInput = document.getElementById('numTabsInput');
+    const numCyclesInput = document.getElementById('numCyclesInput');
+    const numCycles = parseInt(numCyclesInput.value);
+    const numTabs = parseInt(numTabsInput.value);
+    const result = [];
+    const runBenchAndProcess = async () => {
+      const r = await runBench(numCycles, numTabs);
+      console.log(r);
+      result.push(r);
+    };
+    await runBenchAndProcess();
+    await runBenchAndProcess();
+    const pValueLimit = 1;
     while (true) {
-      await bench();
-      let x1 = result[result.length - 1];
-      let x2 = result[result.length - 2];
-      let x3 = result[result.length - 3];
+      await runBenchAndProcess();
+      let x1 = result[result.length - 1].flat();
+      let x2 = result[result.length - 2].flat();
+      let x3 = result[result.length - 3].flat();
       const t1 = ttest(x1, x2);
       const t2 = ttest(x2, x3);
       const t3 = ttest(x3, x1);
       console.log(t1);
       console.log(t2);
       console.log(t3);
-      if (t1 < 0.05 && t2 < 0.05 && t3 < 0.05) {
+      console.log(mean(x1));
+      if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
+        console.log('converged!');
         console.log(mean(x1));
         console.log(mean(x2));
         console.log(mean(x3));
         console.log((mean(x1) + mean(x2) + mean(x3)) / 3);
         break;
       }
-    };
+    }
   });
   takeLogButton.addEventListener('click', async () => {
     await takeLog(benchResultDiv);
