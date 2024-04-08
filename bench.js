@@ -111,7 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
     await runBenchAndProcess();
     await runBenchAndProcess();
     const pValueLimit = 1;
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 20; i++) {
       while (true) {
         await runBenchAndProcess();
         let x1 = result[result.length - 1].flat();
