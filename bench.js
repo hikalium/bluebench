@@ -36,16 +36,6 @@ function extractBiosInfoAttr(biosInfoLines, key) {
       .trim();
 }
 
-async function takeLog(benchResultDiv) {
-  const biosInfo = await getInnerTextOfUrl('file:///var/log/bios_info.txt');
-  // console.log(biosInfo);
-  const biosInfoLines = biosInfo.split('\n');
-  const hwid = extractBiosInfoAttr(biosInfoLines, 'hwid');
-  benchResultDiv.innerText += `hwid: ${hwid}\n`;
-  const fwid = extractBiosInfoAttr(biosInfoLines, 'fwid');
-  benchResultDiv.innerText += `fwid: ${fwid}\n`;
-}
-
 const runCycle = async function(numTabs) {
   // returns: tab open latencies: [Number; numTabs]
   const result = [];
@@ -87,50 +77,15 @@ const runBench = async function(numCycles, numTabs) {
   return result;
 };
 
+const log = (div, s) => {
+  div.innerText += s;
+  div.innerText += "\n";
+}
+
 document.addEventListener('DOMContentLoaded', function() {
-  const chart = bb.generate({
-    bindto: '#chart',
-    legend: {show: false},
-    data: {
-      type: 'scatter',
-      json: {},
-    },
-    axis: {
-      x: {label: 'Effective tabs opened'},
-      y: {label: 'Time took (ms)'},
-    }
-  });
-  const histChart = bb.generate({
-    bindto: '#histChart',
-    legend: {show: false},
-    title: {text: 'Time distribution'},
-    data: {
-      type: 'step',
-      json: {},
-    },
-    axis: {
-      x: {label: 'Time range (ms, left inclusive)'},
-      y: {label: 'Frequency'},
-    },
-    line: {step: {type: 'step-after', tooltipMatch: true}},
-  });
-  const totalHistChart = bb.generate({
-    bindto: '#totalHistChart',
-    legend: {show: false},
-    title: {text: 'Time distribution (All data)'},
-    data: {
-      type: 'step',
-      json: {},
-    },
-    axis: {
-      x: {label: 'Time range (ms, left inclusive)'},
-      y: {label: 'Frequency'},
-    },
-    line: {step: {type: 'step-after', tooltipMatch: true}},
-  });
   const takeLogButton = document.getElementById('takeLogButton');
   const benchButton = document.getElementById('benchButton');
-  const benchResultDiv = document.getElementById('benchResultDiv');
+  const benchResultPre = document.getElementById('benchResultPre');
   const histogramStepWidth = 10;
   const histogramNumSteps = 30;
   const totalHistogram = [];
@@ -146,9 +101,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const numCycles = parseInt(numCyclesInput.value);
     const numTabs = parseInt(numTabsInput.value);
     const result = [];
+    let iterCount = 0;
     const runBenchAndProcess = async () => {
+      iterCount++;
       const r = await runBench(numCycles, numTabs);
-      console.log(r);
+      log(benchResultPre, `${iterCount},raw,${r}`);
       result.push(r);
     };
     await runBenchAndProcess();
@@ -162,22 +119,31 @@ document.addEventListener('DOMContentLoaded', function() {
       const t1 = ttest(x1, x2);
       const t2 = ttest(x2, x3);
       const t3 = ttest(x3, x1);
-      console.log(t1);
-      console.log(t2);
-      console.log(t3);
-      console.log(mean(x1));
+      log(benchResultPre, `${iterCount},ttest(x1,x2),${t1}`);
+      log(benchResultPre, `${iterCount},ttest(x2,x3),${t2}`);
+      log(benchResultPre, `${iterCount},ttest(x3,x1),${t3}`);
+      log(benchResultPre, `${iterCount},mean(x1),${mean(x1)}`);
+      log(benchResultPre, `${iterCount},mean(x2),${mean(x2)}`);
+      log(benchResultPre, `${iterCount},mean(x3),${mean(x3)}`);
+      log(benchResultPre, `${iterCount},mean(x1,x2,x3),${mean([mean(x1), mean(x2), mean(x3)])}`);
       if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
-        console.log('converged!');
-        console.log(mean(x1));
-        console.log(mean(x2));
-        console.log(mean(x3));
-        console.log((mean(x1) + mean(x2) + mean(x3)) / 3);
+        log(benchResultPre, `${iterCount},result,converged`);
         break;
+      } else {
+        log(benchResultPre, `${iterCount},result,not_converged_yet`);
       }
     }
   });
+  async function takeLog(benchResultPre) {
+    const biosInfo = await getInnerTextOfUrl('file:///var/log/bios_info.txt');
+    const biosInfoLines = biosInfo.split('\n');
+    const hwid = extractBiosInfoAttr(biosInfoLines, 'hwid');
+    const fwid = extractBiosInfoAttr(biosInfoLines, 'fwid');
+    log(benchResultPre, `0,hwid,${hwid}`);
+    log(benchResultPre, `0,fwid,${fwid}`);
+  }
   takeLogButton.addEventListener('click', async () => {
-    await takeLog(benchResultDiv);
+    await takeLog(benchResultPre);
   });
 });
 

@@ -2,27 +2,13 @@
 <html>
   <head>
     <style>
-body {
-  box-sizing: border-box;
-  padding-left: 16px;
-  width: 100%;
-  margin: 0px;
-}
-.input-label {
-  display: inline-block;
-  width: 8em;
-}
-.chart-wrapper {
-  height: 360px;
-  width: calc(100% - 32px - 16px);
-  background-color: rgba(220, 220, 220, 0.5);
-  margin: 0px;
-  padding: 8px;
-}
+      pre {
+        font-size: 16px;
+      }
     </style>
   </head>
   <body>
-    <h3>Bench</h3>
+    <h3>bluebench</h3>
     <div>
       <div class="input-label">numTabs</div>
       <input type="number" id="numTabsInput" value="5"></input>
@@ -32,24 +18,12 @@ body {
       <input type="number" id="numCyclesInput" value="5"></input>
     </div>
     <div>
-      <button id="benchButton">Bench!</button>
-      <button id="takeLogButton">Take log</button>
+      <button id="benchButton">Run</button>
+      <button id="takeLogButton">Capture ChromeOS-specific info</button>
     </div>
     <div>
-      <div id="benchResultDiv"></div>
-      <div class="chart-wrapper">
-        <div id="totalHistChart"></div>
-      </div>
-      <div class="chart-wrapper">
-        <div id="chart"></div>
-      </div>
-      <div class="chart-wrapper">
-        <div id="histChart"></div>
-      </div>
+      <pre id="benchResultPre"></pre>
     </div>
   </body>
-  <script src="./third_party/d3.min.js"></script>
-  <script src="./third_party/billboard.js"></script>
-  <link rel="stylesheet" href="./third_party/billboard.css">
   <script src="bench.js"></script>
 </html>
