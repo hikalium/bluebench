@@ -89,6 +89,7 @@ document.addEventListener('DOMContentLoaded', function() {
   const takeLogButton = document.getElementById('takeLogButton');
   const benchButton = document.getElementById('benchButton');
   const copyResultButton = document.getElementById('copyResultButton');
+  const shortResultPre = document.getElementById('shortResultPre');
   const benchResultPre = document.getElementById('benchResultPre');
   const histogramStepWidth = 10;
   const histogramNumSteps = 30;
