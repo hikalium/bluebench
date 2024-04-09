@@ -42,8 +42,11 @@ const runCycle = async function(numTabs) {
   const tabIdToBeRemovedList = [];
   for (let i = 0; i < numTabs; i++) {
     const t0 = performance.now();
+    // Open a tab with a data URL, to make sure that it gets unique security context.
+    // (which means the tab is created in a new process.)
+    // c.f. https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy#inherited_origins
     const tid =
-        (await chrome.tabs.create({url: 'nothing.html', active: false})).id;
+        (await chrome.tabs.create({url: 'data:,Hello%2C%20World%21', active: false})).id;
     while (true) {
       const t = await chrome.tabs.get(tid);
       if (t.status === 'complete') {
