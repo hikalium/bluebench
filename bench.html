@@ -15,7 +15,7 @@
     </div>
     <div>
       <div class="input-label">numCycles</div>
-      <input type="number" id="numCyclesInput" value="3"></input>
+      <input type="number" id="numCyclesInput" value="5"></input>
     </div>
     <div>
       <div class="input-label">numConvergedResults</div>
@@ -24,10 +24,15 @@
     <div>
       <button id="benchButton">Run</button>
       <button id="takeLogButton">Capture ChromeOS-specific info</button>
-      <button id="copyResultButton">Copy result</button>
     </div>
     <div>
-      <pre id="shortResultPre" style="font-size: 24px"></pre>
+      <h2>summary</h2>
+      <button id="copyResultButton">Copy result</button>
+      <pre id="shortResultPre"></pre>
+    </div>
+    <div>
+      <h2>log</h2>
+      <button id="copyResultButton">Copy result</button>
       <pre id="benchResultPre"></pre>
     </div>
   </body>

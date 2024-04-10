@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const result = [];
     let iterCount = 0;
+    const convergedMeans = [];
     const runBenchAndProcess = async () => {
       // Returns: isConverged
       iterCount++;
@@ -133,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (t1 < pValueLimit && t2 < pValueLimit && t3 < pValueLimit) {
           meanAll = mean([mean(x1),mean(x2),mean(x3)]);
           resultStatus = "converged";
+          convergedMeans.push(meanAll);
         } else {
           resultStatus = "not_converged_yet";
         }
@@ -140,16 +142,25 @@ document.addEventListener('DOMContentLoaded', function() {
       log(benchResultPre, `${(new Date()).toISOString()},${iterCount},${resultStatus},${meanAll},${t1},${t2},${t3},${r}`);
       return (resultStatus === "converged");
     };
+    const t0 = performance.now();
     await runBenchAndProcess();
     await runBenchAndProcess();
     const pValueLimit = 1;
+    let totalRunCount = 2;
     for (let i = 0; i < numConvergedResults; i++) {
       while (true) {
+        totalRunCount++;
         if (await runBenchAndProcess()) {
           break;
         }
       }
     }
+    const t1 = performance.now();
+    const totalDuration = t1 - t0;
+    const resultMean = mean(convergedMeans);
+    const resultMax = Math.max(...convergedMeans);
+    const resultMin = Math.min(...convergedMeans);
+    log(shortResultPre, `${(new Date()).toISOString()},${resultMean},${resultMax},${resultMin},${convergedMeans.length},${totalRunCount},${totalDuration}`);
   });
   async function takeLog(benchResultPre) {
     const biosInfo = await getInnerTextOfUrl('file:///var/log/bios_info.txt');
